@@ -1,0 +1,13 @@
+services:
+  bot:
+    build: .
+    image: ghcr.io/CHANGE_ME/drinks-to-ass-bot:latest
+    container_name: drinks-to-ass-bot
+    restart: unless-stopped
+    env_file:
+      - .env
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
