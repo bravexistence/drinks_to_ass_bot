@@ -1,7 +1,7 @@
 services:
   bot:
     build: .
-    image: ghcr.io/CHANGE_ME/drinks-to-ass-bot:latest
+    image: ghcr.io/bravexistence/drinks_to_ass_bot:latest
     container_name: drinks-to-ass-bot
     restart: unless-stopped
     env_file:

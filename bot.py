@@ -20,6 +20,120 @@ DRINKS_PATTERN = re.compile(
     re.IGNORECASE,
 )
 
+# Латиница, визуально неотличимая от кириллицы (Unicode confusables).
+# Покрывает приёмы вида "нaпитки" (Latin a), "Hапитки" (Latin H), "Нaпитки".
+VISUAL_LATIN_TO_CYRILLIC = str.maketrans(
+    {
+        "a": "а",
+        "c": "с",
+        "e": "е",
+        "o": "о",
+        "p": "р",
+        "x": "х",
+        "y": "у",
+        "A": "А",
+        "B": "В",
+        "C": "С",
+        "E": "Е",
+        "H": "Н",
+        "K": "К",
+        "M": "М",
+        "O": "О",
+        "P": "Р",
+        "T": "Т",
+        "X": "Х",
+        "Y": "У",
+    }
+)
+
+# Простой транслит латиницы → кириллица (ГОСТ-подобный).
+# Покрывает приёмы вида "Napitki", "napitok", "NAPITKAMI".
+PHONETIC_LATIN_TO_CYRILLIC = str.maketrans(
+    {
+        "a": "а",
+        "b": "б",
+        "c": "ц",
+        "d": "д",
+        "e": "е",
+        "f": "ф",
+        "g": "г",
+        "h": "х",
+        "i": "и",
+        "j": "й",
+        "k": "к",
+        "l": "л",
+        "m": "м",
+        "n": "н",
+        "o": "о",
+        "p": "п",
+        "q": "к",
+        "r": "р",
+        "s": "с",
+        "t": "т",
+        "u": "у",
+        "v": "в",
+        "w": "в",
+        "x": "х",
+        "y": "ы",
+        "z": "з",
+        "A": "А",
+        "B": "Б",
+        "C": "Ц",
+        "D": "Д",
+        "E": "Е",
+        "F": "Ф",
+        "G": "Г",
+        "H": "Х",
+        "I": "И",
+        "J": "Й",
+        "K": "К",
+        "L": "Л",
+        "M": "М",
+        "N": "Н",
+        "O": "О",
+        "P": "П",
+        "Q": "К",
+        "R": "Р",
+        "S": "С",
+        "T": "Т",
+        "U": "У",
+        "V": "В",
+        "W": "В",
+        "X": "Х",
+        "Y": "Ы",
+        "Z": "З",
+    }
+)
+
+
+# Диграфы — обрабатываем ДО посимвольного транслита, иначе 'ch' уйдёт в 'цх'.
+TRANSLIT_DIGRAPHS = [
+    (re.compile(r"sch", re.IGNORECASE), "щ"),
+    (re.compile(r"ch", re.IGNORECASE), "ч"),
+    (re.compile(r"sh", re.IGNORECASE), "ш"),
+    (re.compile(r"zh", re.IGNORECASE), "ж"),
+    (re.compile(r"yo", re.IGNORECASE), "ё"),
+    (re.compile(r"yu", re.IGNORECASE), "ю"),
+    (re.compile(r"ya", re.IGNORECASE), "я"),
+]
+
+
+def _to_translit(text: str) -> str:
+    for pattern, replacement in TRANSLIT_DIGRAPHS:
+        text = pattern.sub(replacement, text)
+    return text.translate(PHONETIC_LATIN_TO_CYRILLIC)
+
+
+def is_drinks_mention(text: str) -> bool:
+    """Матчит 'напитки' в трёх вариантах: оригинал, визуальные подмены, транслит."""
+    candidates = (
+        text,
+        text.translate(VISUAL_LATIN_TO_CYRILLIC),
+        _to_translit(text),
+    )
+    return any(DRINKS_PATTERN.search(c) for c in candidates)
+
+
 dp = Dispatcher()
 
 
@@ -34,7 +148,7 @@ async def handle_text(message: Message) -> None:
         message.text,
         message.caption,
     )
-    if payload and DRINKS_PATTERN.search(payload):
+    if payload and is_drinks_mention(payload):
         await message.reply(REPLY_TEXT)
 
 
